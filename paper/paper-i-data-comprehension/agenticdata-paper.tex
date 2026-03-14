@@ -195,32 +195,43 @@ Format detection uses a priority-ordered pipeline: (1)~file extension matching (
 
 \subsection{Data Lineage}\label{sec:lineage}
 
-Every record carries a \texttt{LineageChain}. Trust decays with each transformation:
+When data passes through a transformation pipeline, the connection between output and input is typically lost. A value in a report might have originated from a CSV upload, passed through three ETL stages, been merged with an API response, and had its format normalized---but by the time a downstream consumer encounters it, all that history is invisible. AgenticData addresses this by attaching a \texttt{LineageChain} to every record: an ordered list of entries recording each transformation with BLAKE3 hashes of the input and output state, timestamps, source identifiers, and human-readable descriptions.
+
+Trust scores quantify how far a piece of data has traveled from its original source:
 \begin{equation}
 \text{trust}(d) = \max\left(0.1,\; 1.0 - 0.05d\right)
 \label{eq:trust}
 \end{equation}
-where $d$ is the number of transformation steps. This linear model was chosen over exponential decay (as used in AgenticMemory~\cite{owolabi2026agenticmemory} for memory confidence) because data provenance degrades predictably per processing step.
+where $d$ is the number of transformation steps. Direct source data has $\text{trust} = 1.0$; after 10~transformations, trust drops to $0.50$; after 18~transformations, it reaches the floor of $0.10$. We chose a linear decay model rather than the exponential decay used in AgenticMemory~\cite{owolabi2026agenticmemory} for cognitive confidence, because data provenance degrades predictably with each processing step---unlike human memory, where forgetting accelerates over time.
 
-Seven lineage actions are defined: \textsc{Ingested}, \textsc{Transformed}, \textsc{Merged}, \textsc{Derived}, \textsc{Corrected}, \textsc{Redacted}, \textsc{Migrated}. Each entry stores BLAKE3 hashes of input and output state.
+Seven lineage action types partition the space of data operations: \textsc{Ingested} (initial import from external source), \textsc{Transformed} (computation applied), \textsc{Merged} (combined from multiple sources), \textsc{Derived} (computed from other fields), \textsc{Corrected} (error fixed), \textsc{Redacted} (PII removed), and \textsc{Migrated} (format changed). Each entry stores BLAKE3 hashes of input and output state, enabling integrity verification at any point in the chain.
 
 \subsection{Quality Engine}\label{sec:quality}
 
-Five-dimensional scoring, each normalized to $[0,1]$: \textbf{Completeness}~$C$, \textbf{Uniqueness}~$U$, \textbf{Consistency}~$K$, \textbf{Freshness}~$F = \max(0, 1-\Delta t/720\text{h})$, \textbf{Accuracy}~$A$.
+Data quality is not a binary property. A dataset can be highly complete but contain duplicates, or perfectly unique but stale. To capture this multidimensional nature, the quality engine computes five independent scores, each normalized to $[0, 1]$:
+
+\textbf{Completeness}~$C$ measures the ratio of non-null values to total values---a dataset where 20\% of a column is missing scores $C = 0.80$. \textbf{Uniqueness}~$U$ measures the ratio of distinct record checksums to total records, detecting bulk duplication. \textbf{Consistency}~$K$ measures structural uniformity: the fraction of records sharing the most common field count, catching schema drift where some rows have extra or missing columns. \textbf{Freshness}~$F = \max(0, 1 - \Delta t / 720\text{h})$ degrades linearly over 30~days from the most recent update, providing an early warning when data sources stop refreshing. \textbf{Accuracy}~$A$ measures compliance with user-defined validation rules.
+
+The overall quality score combines these dimensions equally:
 \begin{equation}
 Q = \left\lfloor 100 \cdot \tfrac{1}{5}(C + U + K + F + A) \right\rfloor
 \label{eq:quality}
 \end{equation}
-Anomaly detection: \emph{null spikes} ($>$50\% null rate) and \emph{statistical outliers} ($z = |x-\mu|/\sigma > 3$).
+
+Anomaly detection operates independently of quality scoring, identifying two patterns that often precede quality collapse: \emph{null spikes} (fields where the null rate exceeds 50\%, with severity proportional to the ratio) and \emph{statistical outliers} (numeric values with z-score~$z = |x - \mu|/\sigma > 3$, indicating values more than three standard deviations from the field mean).
 
 \subsection{Graph Engine}\label{sec:graph}
 
-BFS traversal explores typed schema edges to configurable depth. Degree centrality~\cite{page1999pagerank} identifies hub tables. Automatic FK discovery: if table~$A$ has \texttt{b\_id} and table~$B$ has \texttt{id} with matching type, a \textsc{References} edge is proposed ($c = 0.90$). Same-name same-type fields across tables receive $c = 0.60$.
+Real-world data rarely exists in isolation. Tables reference other tables. Fields derive from computations on other fields. Understanding these relationships is essential for impact analysis (``if this column changes, what else breaks?'') and data discovery (``what tables are related to this one?'').
+
+The graph engine provides three capabilities. \textbf{BFS traversal} explores typed schema edges from a starting node to a configurable depth, answering questions like ``what tables are reachable from \texttt{users}?'' \textbf{Degree centrality}~\cite{page1999pagerank} identifies hub tables---nodes with the most edge connections---highlighting the most important tables in a schema. \textbf{Automatic FK discovery} detects foreign-key candidates by matching naming conventions: if table~$A$ has a field \texttt{b\_id} and table~$B$ has a field \texttt{id} with the same type, a \textsc{References} relationship is proposed with $c = 0.90$. Same-name same-type fields across tables (e.g., both tables have a \texttt{region} column of type \texttt{Text}) receive a weaker $c = 0.60$, indicating a possible but less certain relationship.
 
 
 \section{The .adat File Format}\label{sec:format}
 
-The \texttt{.adat} format follows AgenticMemory's~\cite{owolabi2026agenticmemory} design principles: single-file portability, integrity verification, and compression. The 64-byte header stores magic bytes (\texttt{0x41444154}), version, counts, and offsets. Content sections are LZ4-compressed~\cite{lz4_2011} with BLAKE3~\cite{blake3_2020} checksums.
+An agent's data comprehension---inferred schemas, parsed records, lineage chains, quality scores---must survive process restarts, be transferable between machines, and be verifiable for tampering. The \texttt{.adat} binary format addresses all three requirements by storing everything in a single portable file, following the design principles established by AgenticMemory's \texttt{.amem} format~\cite{owolabi2026agenticmemory}.
+
+The 64-byte header contains magic bytes (\texttt{0x41444154}, the ASCII encoding of ``ADAT''), format version (currently~1), section counts (schemas, sources, records), and byte offsets to each section. This fixed-size header enables readers to locate any section in $O(1)$ time without scanning the file. Content sections are LZ4-compressed~\cite{lz4_2011} for space efficiency (typically 2--4\,GB/s decompression on modern hardware), and each record carries a BLAKE3~\cite{blake3_2020} checksum enabling per-record integrity verification without reading the entire file.
 
 \begin{figure*}[t]
 \centering
@@ -284,14 +295,20 @@ Spatial + Other & 8 & 39 \\
 \label{tab:tools}
 \end{table}
 
-The \texttt{ToolRegistry} routes calls via prefix match. \texttt{SessionManager} tracks per-user operations with resume. \texttt{ConsolidationEngine} provides dedup (BLAKE3), orphan pruning, schema merging, and quality refresh.
+The \texttt{ToolRegistry} routes incoming JSON-RPC calls to the appropriate handler module using namespace prefix dispatch---each of the 24~capability groups owns a prefix (e.g., \texttt{data\_schema\_*}, \texttt{data\_quality\_*}), so routing requires a single string comparison rather than scanning all 122~definitions. Each handler module exports two functions: \texttt{definitions()} for the MCP handshake and \texttt{execute()} for dispatching to the engine.
+
+The \texttt{SessionManager} tracks operation history per user, recording what data was ingested, what queries were run, and what quality issues were found. When a user returns after a gap, the \texttt{resume\_context()} method summarizes the last session's activity, enabling an agent to pick up where it left off without re-ingesting data.
+
+The \texttt{ConsolidationEngine} prevents unbounded growth through four maintenance operations: deduplication by BLAKE3 checksum (identical records removed), orphan pruning (records whose schema node no longer exists), schema merging (structurally identical schemas collapsed), and quality refresh (scores recomputed for all active nodes).
 
 
 \section{Security}\label{sec:security}
 
-\textbf{Field-level encryption.} Per-field key derivation: $K_f = \text{BLAKE3}_K(f)$. Sensitive columns encrypted; non-sensitive columns remain queryable.
+\textbf{Field-level encryption.} A common requirement in enterprise data is encrypting sensitive columns (SSN, email) while leaving non-sensitive columns (city, product category) queryable. AgenticData achieves this through per-field key derivation: a master key~$K$ is processed through BLAKE3 keyed hashing with the field name~$f$ as context, producing $K_f = \text{BLAKE3}_K(f)$. This means each field gets a unique encryption key derived from the same master secret, so compromising one field's key does not expose others.
 
-\textbf{PII detection.} Five categories: email (\texttt{@}+domain), phone (10--15 digits), SSN (NNN-NN-NNNN), credit card (13--19 digits + Luhn~\cite{luhn1960computer}: $\sum d_i \equiv 0 \pmod{10}$), IP address (N.N.N.N). Four redaction methods: mask, placeholder, hash, remove.
+\textbf{PII detection and redaction.} The redaction engine detects five PII categories, each with type-specific validation to minimize false positives. Email detection requires both \texttt{@} and a domain with a TLD (not just any string containing \texttt{@}). Phone detection requires 10--15 consecutive digits. SSN detection requires the strict NNN-NN-NNNN dash pattern. Credit card detection requires 13--19 digits that pass the Luhn checksum~\cite{luhn1960computer}: $\sum d_i \equiv 0 \pmod{10}$ where alternating digits from the right are doubled and reduced. This prevents false positives from random numeric sequences---the Visa test number \texttt{4111111111111111} passes while arbitrary 16-digit strings do not. IP address detection validates the N.N.N.N octet format.
+
+Four redaction methods are supported: masking (\texttt{[REDACTED]}), type-appropriate placeholders (e.g., \texttt{XXX-XX-XXXX} for SSN), cryptographic hashing via BLAKE3 (one-way, deterministic), and complete field removal.
 
 \begin{table}[t]
 \caption{PII detection accuracy: 100\% precision, 100\% recall.}
@@ -388,13 +405,13 @@ FFI + MCP & 5 & C bindings + protocol \\
 
 \section{Discussion}\label{sec:discussion}
 
-\textbf{Enabled capabilities.} AgenticData makes several operations practical that currently require 5--10 separate tools. \emph{Universal ingestion} means an agent can receive any file and immediately understand its structure. \emph{Automatic schema inference} eliminates the ``what does flag7 mean?'' problem. \emph{Field-level lineage} enables ``where did this value come from?'' with a complete chain. \emph{Continuous quality monitoring} prevents the silent degradation that corrupts ML models.
+\textbf{Enabled capabilities.} AgenticData makes several operations practical that currently require assembling 5--10 separate tools. \emph{Universal ingestion} means an agent can receive a file it has never seen before and immediately understand its structure---the format is detected, the schema is inferred with semantic types, and the quality is scored, all in a single operation. \emph{Automatic schema inference} eliminates the recurring problem of enterprise systems where nobody knows what ``flag7'' means because the original developer left years ago; AgenticData infers the meaning from the data itself. \emph{Field-level lineage} enables tracing any output value back through every transformation to its original source, with a quantitative trust score that tells you how far the value has traveled. \emph{Continuous quality monitoring} catches the slow degradation---increasing null rates, creeping outliers, stale data---that silently corrupts downstream ML models and reports for weeks before anyone notices.
 
-\textbf{Comparison with AgenticMemory.} AgenticData and AgenticMemory~\cite{owolabi2026agenticmemory} serve complementary roles. Memory stores cognitive state (beliefs, decisions, reasoning chains) as a navigable graph. Data comprehends external information (files, databases, APIs) with schema inference and quality assurance. They share design principles---single-file binary format, Rust core, MCP interface, zero dependencies---but operate on fundamentally different domains.
+\textbf{Comparison with AgenticMemory.} AgenticData and AgenticMemory~\cite{owolabi2026agenticmemory} serve complementary roles in the Agentra ecosystem. Memory stores the agent's cognitive state---beliefs, decisions, reasoning chains, corrections---as a navigable graph with typed edges for causal reasoning. Data comprehends external information---files, databases, APIs---with schema inference, lineage tracking, and quality assurance. The two systems share design principles (single-file binary format with LZ4 compression and BLAKE3 integrity, Rust core, MCP interface, zero external dependencies) but operate on fundamentally different domains. An agent might use Memory to remember \emph{that} a data source was unreliable, while using Data to \emph{prove} it by showing the quality score trend.
 
-\textbf{Limitations.} In-memory storage; streaming ingestion needed for large datasets. Binary format parsers (Excel, PDF) require external libraries. PII detection uses patterns; context-dependent PII needs LLM assistance. Trust decay assumes uniform transformation quality.
+\textbf{Limitations.} The current implementation uses in-memory storage; production deployments with datasets exceeding available RAM will require streaming ingestion and disk-backed indexes. Binary format parsers (Excel \texttt{.xlsx}, PDF, Word \texttt{.docx}) require external libraries not yet integrated---the current 16~parsers cover text-based formats. PII detection uses pattern matching; context-dependent PII (e.g., a person's name appearing next to their address) requires LLM-assisted detection for full coverage. The linear trust decay model (Equation~\ref{eq:trust}) assumes uniform transformation quality; in practice, some transformations are more lossy than others, suggesting a per-transform-type decay rate as future work.
 
-\textbf{Future work.} Streaming ingestion, Parquet~\cite{parquet2013}/Avro/Protobuf~\cite{protobuf2008} parsers, federated query execution, append-only storage following AgenticMemory V3, LLM-powered natural language queries.
+\textbf{Future work.} Planned extensions include streaming ingestion for large datasets, binary format parsers (Parquet~\cite{parquet2013}, Avro, Protocol Buffers~\cite{protobuf2008}), federated query execution across registered sources, append-only storage with content-addressed blocks following AgenticMemory's V3 Immortal Architecture, and an LLM-powered natural language query interface that translates questions like ``show me all overdue invoices'' into structured filter queries.
 
 
 \section{Conclusion}\label{sec:conclusion}
