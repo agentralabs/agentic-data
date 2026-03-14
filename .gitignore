@@ -42,3 +42,6 @@ paper/**/*.synctex.gz
 # Environment / secrets
 .env
 *.key
+
+# Internal planning (not published)
+planning-docs/
