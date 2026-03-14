@@ -61,7 +61,7 @@ The core insight of this work is that data comprehension is an \emph{understandi
 
 \begin{figure*}[t]
 \centering
-\begin{tikzpicture}[node distance=1.2cm, every node/.style={font=\small},
+\begin{tikzpicture}[scale=0.92, node distance=1.2cm, every node/.style={font=\small},
   toolnode/.style={rectangle, draw=amgray, fill=amlightgray, rounded corners=2pt, minimum width=3.2cm, minimum height=0.7cm, align=center, font=\scriptsize},
   compnode/.style={rectangle, rounded corners=3pt, draw=amblue, fill=amblue!10, minimum width=1.2cm, minimum height=0.55cm, font=\tiny, align=center, thick},
   qualnode/.style={rectangle, rounded corners=3pt, draw=amgreen, fill=amgreen!10, minimum width=1.2cm, minimum height=0.55cm, font=\tiny, align=center, thick},
@@ -120,7 +120,7 @@ Research on data processing and integration spans three decades~\cite{halevy2006
 \begin{table*}[t]
 \caption{Comparison of data processing tools across key comprehension dimensions. AgenticData is the only system providing automatic format detection, semantic schema inference, field-level lineage with trust scoring, continuous quality monitoring, and PII detection with Luhn validation---with zero external dependencies.}
 \label{tab:related}
-\centering\small
+\centering\scriptsize
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
 \textbf{System} & \textbf{Formats} & \textbf{Schema Inference} & \textbf{Lineage} & \textbf{Quality} & \textbf{PII} & \textbf{Dependencies} \\
@@ -143,7 +143,7 @@ AgenticData models data comprehension as a pipeline of five stages: format detec
 
 \subsection{Universal Schema}\label{sec:schema}
 
-The \texttt{UniversalSchema} type represents any data structure through a common model. Drawing on data integration theory~\cite{doan2012principles, abiteboul1995foundations}, a schema $S = (N, E)$ consists of typed nodes $N$ (tables, collections) and edges $E \subseteq N \times N \times \mathcal{R}$ with $\mathcal{R} = \{\textsc{References}, \textsc{Contains}, \textsc{DerivedFrom}, \textsc{BelongsTo}, \textsc{SimilarTo}\}$. Each node contains \texttt{SchemaField} definitions with five properties: inferred type~$\tau$, nullability~$\nu$, confidence $c \in [0,1]$, sample values, and optional statistics.
+The \texttt{UniversalSchema} type represents any data structure through a common model. Drawing on data integration theory~\cite{doan2012principles, abiteboul1995foundations}, a schema $S = (N, E)$ consists of typed nodes~$N$ (tables, collections) and relationship edges~$E$. Five relationship types are defined: \textsc{References}, \textsc{Contains}, \textsc{DerivedFrom}, \textsc{BelongsTo}, and \textsc{SimilarTo}. Each node contains \texttt{SchemaField} definitions with five properties: inferred type~$\tau$, nullability~$\nu$, confidence $c \in [0,1]$, sample values, and optional statistics.
 
 We define 19~semantic field types in four categories: \textbf{Primitives} (\texttt{Text}, \texttt{Integer}, \texttt{Float}, \texttt{Boolean}, \texttt{Binary}), \textbf{Temporal} (\texttt{DateTime}, \texttt{Date}, \texttt{Time}, \texttt{Duration}), \textbf{Structured} (\texttt{Object}, \texttt{Array}, \texttt{Map}, \texttt{Enum}, \texttt{Uuid}), and \textbf{Semantic} (\texttt{Email}, \texttt{Url}, \texttt{IpAddress}, \texttt{GeoPoint}, \texttt{Currency}).
 
@@ -318,7 +318,7 @@ Currency & ``\$1{,}234.56'' & Clean & \textcolor{amgreen}{\textbf{TN}} \\
 
 \section{Evaluation}\label{sec:evaluation}
 
-All benchmarks: Apple~M4, 24~GB RAM, Rust~1.85.0, \texttt{--release}. All claims backed by \texttt{tests/paper\_validation.rs}.
+All benchmarks were measured on Apple~M4 with 24~GB~RAM, Rust~1.85.0, compiled with \texttt{--release} optimizations. Every quantitative claim is backed by automated tests in the \texttt{paper\_validation} test module.
 
 \begin{table}[t]
 \caption{Throughput benchmarks from automated stress tests.}
@@ -345,8 +345,8 @@ Spatial query & 1{,}000 points & 25\,$\mu$s \\
 
 \begin{figure}[t]
 \centering
-\begin{tikzpicture}
-\begin{axis}[width=\columnwidth, height=5cm, xbar, xlabel={Time (ms)},
+\begin{tikzpicture}[scale=0.95]
+\begin{axis}[width=0.95\columnwidth, height=5cm, xbar, xlabel={Time (ms)},
   symbolic y coords={{.adat read},{.adat write},{Spatial},{PII scan},{Anomaly},{Quality},{Search},{Filter},{CSV 10K}},
   ytick=data, nodes near coords, nodes near coords align={horizontal},
   every node near coord/.append style={font=\tiny},
