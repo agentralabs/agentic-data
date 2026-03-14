@@ -10,7 +10,7 @@ pub mod spatial;
 pub mod header;
 
 pub use error::{AdatError, AdatResult};
-pub use schema::{SchemaNode, SchemaEdge, SchemaField, FieldType, FieldStats, UniversalSchema};
+pub use schema::{SchemaNode, SchemaEdge, SchemaEdgeType, SchemaField, FieldType, FieldStats, UniversalSchema};
 pub use record::{DataRecord, RecordId, RecordStatus};
 pub use source::{DataSource, SourceId, SourceType};
 pub use lineage::{LineageEntry, LineageChain, LineageAction, TransformReceipt};

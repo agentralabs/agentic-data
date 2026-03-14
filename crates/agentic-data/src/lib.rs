@@ -23,6 +23,10 @@ pub use types::{
     ADAT_MAGIC, FORMAT_VERSION, MAX_CONTENT_SIZE,
 };
 pub use format::{AdatWriter, AdatReader};
-pub use engine::{DataStore, IngestEngine, QueryEngine, QueryResult, TransformEngine, QualityEngine};
+pub use engine::{
+    DataStore, IngestEngine, QueryEngine, QueryResult, TransformEngine, QualityEngine,
+    GraphEngine, TraversalDirection, SessionManager, DataSession,
+    ConsolidationEngine, ConsolidationReport,
+};
 pub use index::{SchemaIndex, TemporalIndex, QualityIndex, SpatialIndex, LineageIndex};
 pub use crypto::{FieldEncryptor, KeyManager, RedactionEngine, PiiDetection, RedactionPolicy};

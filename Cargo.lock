@@ -41,6 +41,7 @@ name = "agentic-data-mcp"
 version = "0.1.0"
 dependencies = [
  "agentic-data",
+ "blake3",
  "clap",
  "serde",
  "serde_json",
