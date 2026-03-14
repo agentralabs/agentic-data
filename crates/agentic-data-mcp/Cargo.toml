@@ -3,7 +3,11 @@ name = "agentic-data-mcp"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "AgenticData MCP server — 131 tools for universal data comprehension"
+keywords = ["mcp", "data", "schema", "ai-agent"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "agentic-data-mcp"

@@ -3,7 +3,11 @@ name = "agentic-data-ffi"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "AgenticData FFI — C bindings for cross-language integration"
+keywords = ["ffi", "data", "bindings", "ai-agent"]
+categories = ["api-bindings"]
 
 [lib]
 crate-type = ["cdylib", "staticlib"]

@@ -3,7 +3,11 @@ name = "agentic-data-cli"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 description = "AgenticData CLI — command-line interface for data comprehension"
+keywords = ["cli", "data", "schema", "lineage"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "adat"
