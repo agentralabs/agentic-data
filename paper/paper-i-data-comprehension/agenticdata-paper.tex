@@ -65,7 +65,7 @@
 % ABSTRACT
 % ============================================================================
 \begin{abstract}
-Data processing tools solve individual format problems---CSV parsers read columns, SQL tools query tables, PDF extractors pull text---but none provides unified \emph{comprehension}: understanding what data means across formats, tracking where it came from, and assessing whether it can be trusted. We present AgenticData, a universal data comprehension engine that ingests data from 16~formats, automatically infers schemas with type-level precision (detecting emails, dates, currencies, and geospatial coordinates from raw values), tracks field-level lineage through every transformation, and continuously monitors quality with statistical anomaly detection. The system stores all data, schemas, lineage chains, quality scores, and spatial indexes in a single portable \texttt{.adat} binary file using LZ4~compression and BLAKE3~checksums. We implement AgenticData in 7{,}451~lines of Rust across four crates (core library, MCP~server, CLI, and FFI bindings), exposing 122~MCP tools organized around 24~``inventions'' spanning comprehension, transformation, quality, intelligence, security, and collaboration. The MCP~server enables any AI~agent to understand, transform, and validate arbitrary data through a standard protocol. Field-level encryption with per-field key derivation enables selective encryption of sensitive columns while leaving others queryable. Context-aware PII~detection identifies emails, phone numbers, SSNs, credit card numbers (validated via Luhn algorithm), and IP~addresses with configurable redaction policies. On representative datasets, format auto-detection achieves 90--95\% confidence across structured formats and 75\%+ for delimiter-dependent formats. Schema inference correctly identifies all tested type categories (integer, float, boolean, email, URL) with zero misclassifications across 6~validated test cases. CSV ingestion processes 10{,}000~rows in 82\,ms, query filtering scans 10{,}000~records in 1.8\,ms, and spatial radius queries over 1{,}000~points complete in 25\,$\mu$s. The \texttt{.adat} format achieves 132.5~bytes/record with full roundtrip fidelity. All 222~tests (unit, integration, edge case, stress) pass with zero failures. AgenticData requires zero external services and is fully standalone.
+Data processing tools solve individual format problems---CSV parsers read columns, SQL tools query tables, PDF extractors pull text---but none provides unified \emph{comprehension}: understanding what data means across formats, tracking where it came from, and assessing whether it can be trusted. We present AgenticData, a universal data comprehension engine that ingests data from 16~formats, automatically infers schemas with type-level precision (detecting emails, dates, currencies, and geospatial coordinates from raw values), tracks field-level lineage through every transformation, and continuously monitors quality with statistical anomaly detection. The system stores all data, schemas, lineage chains, quality scores, and spatial indexes in a single portable \texttt{.adat} binary file using LZ4~compression and BLAKE3~checksums. We implement AgenticData in 7{,}451~lines of Rust across four crates (core library, MCP~server, CLI, and FFI bindings), exposing 122~MCP tools organized around 24~``capabilitys'' spanning comprehension, transformation, quality, intelligence, security, and collaboration. The MCP~server enables any AI~agent to understand, transform, and validate arbitrary data through a standard protocol. Field-level encryption with per-field key derivation enables selective encryption of sensitive columns while leaving others queryable. Context-aware PII~detection identifies emails, phone numbers, SSNs, credit card numbers (validated via Luhn algorithm), and IP~addresses with configurable redaction policies. On representative datasets, format auto-detection achieves 90--95\% confidence across structured formats and 75\%+ for delimiter-dependent formats. Schema inference correctly identifies all tested type categories (integer, float, boolean, email, URL) with zero misclassifications across 6~validated test cases. CSV ingestion processes 10{,}000~rows in 82\,ms, query filtering scans 10{,}000~records in 1.8\,ms, and spatial radius queries over 1{,}000~points complete in 25\,$\mu$s. The \texttt{.adat} format achieves 132.5~bytes/record with full roundtrip fidelity. All 222~tests (unit, integration, edge case, stress) pass with zero failures. AgenticData requires zero external services and is fully standalone.
 \end{abstract}
 
 % ============================================================================
@@ -118,7 +118,7 @@ Every record carries a \texttt{LineageChain}---an ordered list of \texttt{Lineag
 
 \subsection{Quality Engine}
 
-The quality engine computes five-dimensional scores: \emph{completeness} (ratio of non-null values), \emph{uniqueness} (ratio of distinct records), \emph{consistency} (structural uniformity), \emph{freshness} (recency of updates), and \emph{accuracy} (validation rule compliance). Anomaly detection identifies null spikes (>50\% null rate) and statistical outliers (z-score~>~3) per numeric field.
+The quality engine computes five-dimensional scores: \emph{completeness} (ratio of non-null values), \emph{uniqueness} (ratio of distinct records), \emph{consistency} (structural uniformity), \emph{freshness} (recency of updates), and \emph{accuracy} (validation rule compliance). Anomaly detection identifies null spikes ($>$50\% null rate) and statistical outliers (z-score~$>$~3) per numeric field.
 
 % ============================================================================
 % 3. MCP INTEGRATION
@@ -126,14 +126,14 @@ The quality engine computes five-dimensional scores: \emph{completeness} (ratio 
 \section{MCP Tool Surface}
 \label{sec:mcp}
 
-AgenticData exposes 122~tools through the Model Context Protocol~\cite{mcp2024spec}, organized into 24~``inventions'' across six categories:
+AgenticData exposes 122~tools through the Model Context Protocol~\cite{mcp2024spec}, organized into 24~``capabilitys'' across six categories:
 
 \begin{table}[h]
 \centering
 \small
 \begin{tabular}{lcc}
 \toprule
-\textbf{Category} & \textbf{Inventions} & \textbf{Tools} \\
+\textbf{Category} & \textbf{Groups} & \textbf{Tools} \\
 \midrule
 Comprehension & 4 & 21 \\
 Transformation & 3 & 16 \\
@@ -147,7 +147,7 @@ Prophetic & 5 & 22 \\
 \textbf{Total} & \textbf{24} & \textbf{122} \\
 \bottomrule
 \end{tabular}
-\caption{MCP tool distribution across invention categories.}
+\caption{MCP tool distribution across capability categories.}
 \label{tab:tools}
 \end{table}
 
@@ -179,7 +179,7 @@ We evaluate AgenticData across four dimensions: format detection accuracy, schem
 
 \textbf{Schema inference.} Type detection correctly identifies integers, floats, booleans, emails, and URLs from sample values. In validated integration tests, all type inferences are correct: integer columns detected as \texttt{Integer}, float columns as \texttt{Float}, boolean columns as \texttt{Boolean}, email columns as \texttt{Email}, and URL columns as \texttt{Url}. Six schema inference tests pass with zero misclassifications.
 
-\textbf{Quality scoring.} Complete data (20~records, 3~fields, zero nulls) receives a quality score of 95/100. Data with 75\% null values in one column receives measurably lower completeness scores. Outlier detection correctly identifies values at z-score~>~3: a single value of 999{,}999 among 5{,}000 records centered at 50$\pm$10 is reliably detected. Null spike detection triggers at >50\% null rate with severity proportional to the ratio. Four quality tests pass.
+\textbf{Quality scoring.} Complete data (20~records, 3~fields, zero nulls) receives a quality score of 95/100. Data with 75\% null values in one column receives measurably lower completeness scores. Outlier detection correctly identifies values at z-score~$>$~3: a single value of 999{,}999 among 5{,}000 records centered at 50$\pm$10 is reliably detected. Null spike detection triggers at >50\% null rate with severity proportional to the ratio. Four quality tests pass.
 
 \textbf{Throughput benchmarks (validated).}
 
@@ -229,7 +229,7 @@ AgenticData addresses the fragmentation problem by providing a single engine for
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have presented AgenticData, a universal data comprehension engine that unifies format detection, schema inference, lineage tracking, quality monitoring, and security in a single system. The implementation comprises 7{,}451~lines of Rust across 72~source files, 122~MCP tools organized in 24~inventions, and 222~tests (unit, integration, edge case, and stress) with zero failures. The \texttt{.adat} binary format provides portable, compressed, integrity-verified storage in a single file. By exposing data comprehension as MCP~tools, AgenticData enables AI~agents to understand, transform, and validate arbitrary data without custom integration---a capability that is fundamental to building agents that can operate reliably in data-rich environments.
+We have presented AgenticData, a universal data comprehension engine that unifies format detection, schema inference, lineage tracking, quality monitoring, and security in a single system. The implementation comprises 7{,}451~lines of Rust across 72~source files, 122~MCP tools organized in 24~capabilitys, and 222~tests (unit, integration, edge case, and stress) with zero failures. The \texttt{.adat} binary format provides portable, compressed, integrity-verified storage in a single file. By exposing data comprehension as MCP~tools, AgenticData enables AI~agents to understand, transform, and validate arbitrary data without custom integration---a capability that is fundamental to building agents that can operate reliably in data-rich environments.
 
 \bibliographystyle{plain}
 \bibliography{references}
