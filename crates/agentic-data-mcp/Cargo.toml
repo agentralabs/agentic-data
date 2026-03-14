@@ -10,7 +10,7 @@ name = "agentic-data-mcp"
 path = "src/main.rs"
 
 [dependencies]
-agentic-data = { path = "../agentic-data" }
+agentic-data = { version = "0.1.0", path = "../agentic-data" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

@@ -9,6 +9,6 @@ description = "AgenticData FFI — C bindings for cross-language integration"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-agentic-data = { path = "../agentic-data" }
+agentic-data = { version = "0.1.0", path = "../agentic-data" }
 blake3 = { workspace = true }
 serde_json = { workspace = true }
