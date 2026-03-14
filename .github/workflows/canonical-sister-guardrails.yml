@@ -1,0 +1,14 @@
+name: Canonical Sister Guardrails
+on:
+  push:
+    paths: ['docs/**', 'scripts/**', 'README.md', 'Cargo.toml']
+  pull_request:
+    paths: ['docs/**', 'scripts/**', 'README.md', 'Cargo.toml']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/check-canonical-sister.sh
+      - run: bash scripts/check-install-commands.sh

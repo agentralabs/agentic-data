@@ -1,0 +1,27 @@
+{
+  "key": "data",
+  "name": "AgenticData",
+  "tagline": "Universal data comprehension engine",
+  "include_landing": true,
+  "page_ids": [
+    "overview",
+    "quickstart",
+    "installation",
+    "configuration",
+    "guide",
+    "integration-guide",
+    "concepts",
+    "architecture",
+    "file-format",
+    "api-reference",
+    "ffi-reference",
+    "cli-reference",
+    "mcp-tools",
+    "mcp-prompts",
+    "mcp-resources",
+    "troubleshooting",
+    "faq",
+    "benchmarks"
+  ],
+  "slug_by_id": {}
+}

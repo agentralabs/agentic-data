@@ -1,0 +1,13 @@
+name: Install Command Guardrails
+on:
+  push:
+    paths: ['scripts/**', 'README.md']
+  pull_request:
+    paths: ['scripts/**', 'README.md']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/check-install-commands.sh

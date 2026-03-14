@@ -1,0 +1,26 @@
+name: Runtime Hardening Guardrails
+on:
+  push:
+    paths: ['crates/**']
+  pull_request:
+    paths: ['crates/**']
+
+jobs:
+  hardening:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build all binaries
+        run: cargo build --all -j 2
+      - name: Run all tests
+        run: cargo test --all -j 2 -- --test-threads=1
+      - name: Verify MCP binary starts
+        run: timeout 5 ./target/debug/agentic-data-mcp || true
+      - name: Verify CLI binary starts
+        run: ./target/debug/adat formats
+      - name: Check file sizes (400-line limit)
+        run: |
+          OVER=$(find crates -name "*.rs" -exec wc -l {} + | awk '$1 > 400 && !/total/ {print}')
+          if [ -n "$OVER" ]; then echo "Files over 400 lines:"; echo "$OVER"; exit 1; fi
+          echo "All files under 400 lines"

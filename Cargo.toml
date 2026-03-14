@@ -1,0 +1,40 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/agentic-data",
+    "crates/agentic-data-mcp",
+    "crates/agentic-data-cli",
+    "crates/agentic-data-ffi",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+repository = "https://github.com/agentralabs/agentic-data"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+uuid = { version = "1", features = ["v4", "serde"] }
+lz4_flex = "0.11"
+blake3 = "1"
+memmap2 = "0.9"
+rusqlite = { version = "0.32", features = ["bundled"] }
+tokio = { version = "1", features = ["full"] }
+clap = { version = "4", features = ["derive", "env"] }
+
+[profile.dev]
+codegen-units = 16
+debug = 1
+split-debuginfo = "unpacked"
+incremental = true
+
+[profile.test]
+codegen-units = 16
+debug = 1
+split-debuginfo = "unpacked"
+incremental = true
